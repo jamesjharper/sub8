@@ -12,7 +12,7 @@ template<typename Container> inline std::string to_binary_string(const Container
   out.append("{ 0b");
 
   for (std::size_t i = 0; i < buf.size(); ++i) {
-    uint8_t b = static_cast<uint8_t>(buf[i]);
+    uint8_t b = static_cast<uint8_t>(buf.at(i));
 
     for (int bit = 7; bit >= 0; --bit) {
       out.push_back((b & (1u << bit)) ? '1' : '0');

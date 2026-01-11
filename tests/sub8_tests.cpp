@@ -1,16 +1,17 @@
 
-#include "./../sub8.h"
+
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
 
 #include <catch2/catch_all.hpp>
+#include "./../src/sub8.h"
 #include "test_helpers.h"
 
 using namespace sub8;
 
 #define REQUIRE_THAT_WRITE_IS_OK(input, padded_bits, expected_size, expected_vec) \
-  FixedBitWriter<64> bw; \
+  BoundedBitWriter<128> bw; \
   { \
     auto expected_result = BitFieldResult::Ok; \
     bw.put_padding(padded_bits); \
@@ -30,10 +31,11 @@ using namespace sub8;
     INFO("Input Bytes        = " << to_binary_string(input_bytes)); \
     INFO("Input BitSize      = " << (input_bit_size)); \
     \
-    FixedBitReader<64> br((input_bytes), BitSize::from_bits((input_bit_size) + (padded_bits))); \
+    BoundedBitReader<128> br((input_bytes), BitSize::from_bits((input_bit_size) + (padded_bits))); \
     br.set_cursor_position(BitSize::from_bits((padded_bits))); \
     \
     const auto r = read_field(br, (output)); \
+    INFO("Read Cursor Pos    = " << br.cursor_position().bit_size()); \
     const auto expected_result = BitFieldResult::Ok; \
     \
     /* Custom check for output vs expected */ \
@@ -511,7 +513,8 @@ TEST_CASE("PathBitField: 3-bit paths * 1 (3/4 bits usable)", "[PathBitField][uns
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint8_t, 3, 1>;
+    
+    using T_SUT = NumericArrayBitField<uint8_t, 3, 0, 1, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -533,7 +536,7 @@ TEST_CASE("PathBitField: 3-bit paths * 1 (3/4 bits usable)", "[PathBitField][sig
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<int8_t, 3, 1>;
+    using T_SUT = NumericArrayBitField<int8_t,3, 0, 1, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -552,7 +555,7 @@ TEST_CASE("PathBitField: 3-bit paths * 2 (9/12 bits usable)", "[PathBitField][un
            {"2 group",   {1, 2}, 0, 8, {0b1'001'1'010}}}));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint8_t, 3, 2>;
+    using T_SUT = NumericArrayBitField<uint8_t, 3, 0, 2, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -577,7 +580,7 @@ TEST_CASE("PathBitField: 3-bit paths * 3 (9/12 bits usable)", "[PathBitField][un
            {"3 group non-aligned", {1, 2, 3}, 2, 12, {0b00100110, 0b10101100}}}));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint8_t, 3, 3>;
+    using T_SUT = NumericArrayBitField<uint8_t, 3, 0, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -601,7 +604,7 @@ TEST_CASE("PathBitField: Non empty, 3-bit paths * 3 (9/11 bits usable)", "[NonEm
           }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = NonEmptyPathBitField<uint8_t, 3, /* min */1, /* max */3>;
+    using T_SUT = NumericArrayBitField<uint8_t,3, 1, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -628,7 +631,7 @@ TEST_CASE("PathBitField: 7-bit paths * 3 (21/24 bits usable)", "[PathBitField][u
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint8_t, 7, 3>;
+    using T_SUT = NumericArrayBitField<uint8_t, 7, 0, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -651,7 +654,7 @@ TEST_CASE("PathBitField:  Non empty 7-bit paths * 3 (21/23 bits usable)", "[Path
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = NonEmptyPathBitField<uint8_t, 7,  /* min */2,  /* max */3>;
+    using T_SUT = NumericArrayBitField<uint8_t, 7, 2, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -674,7 +677,7 @@ TEST_CASE("PathBitField: 8-bit paths * 3 (21/24 bits usable)", "[PathBitField][u
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint8_t, 8, 3>;
+    using T_SUT = NumericArrayBitField<uint8_t, 8, 0, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -698,7 +701,7 @@ TEST_CASE("PathBitField: 10-bit paths * 3 (30/33 bits usable)", "[PathBitField][
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PathBitField<uint16_t, 10, 3>;
+    using T_SUT = NumericArrayBitField<uint16_t, 10, 0, 3, ArrayEncoding::Delimited>;
     T_SUT input{};
     T_SUT output{};
 
@@ -711,7 +714,7 @@ TEST_CASE("PathBitField: 10-bit paths * 3 (30/33 bits usable)", "[PathBitField][
 
 // Prefixed Arrays
 
-TEST_CASE("PrefixedBitField: 10-bit strings * 3 (30/32 bits usable)", "[PrefixedBitField][unsigned][10-bit]") {
+TEST_CASE("PrefixedArrayBitField: 10-bit strings * 3 (30/32 bits usable)", "[PrefixedArrayBitField][unsigned][10-bit]") {
   auto [test_name, value, padding, expected_len, expected_bytes] =
       GENERATE(table<std::string, std::vector<uint16_t>, uint8_t, size_t, std::vector<uint8_t>>({
           // length = 0
@@ -731,7 +734,7 @@ TEST_CASE("PrefixedBitField: 10-bit strings * 3 (30/32 bits usable)", "[Prefixed
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = PrefixedBitField<uint16_t, 10, 3>;
+    using T_SUT = NumericArrayBitField<uint16_t, 10, 0, 3, ArrayEncoding::Prefixed>;
     T_SUT input{};
     T_SUT output{};
 
@@ -742,7 +745,7 @@ TEST_CASE("PrefixedBitField: 10-bit strings * 3 (30/32 bits usable)", "[Prefixed
   }
 }
 
-TEST_CASE("NonEmptyPrefixedBitField: 8bit fixed size array min 2, max 3", "[NonEmptyPrefixedBitField][unsigned][8-bit]") {
+TEST_CASE("NonEmptyPrefixedArrayBitField: 8bit fixed size array min 2, max 3", "[NonEmptyPrefixedArrayBitField][unsigned][8-bit]") {
   auto [test_name, in_value, out_value, padding, expected_len, expected_bytes] =
       GENERATE(table<std::string, std::vector<uint8_t>, std::vector<uint8_t>, uint8_t, size_t, std::vector<uint8_t>>({
           {"empty",          {},        {0,0},   0, 17,   {0b0'0000000,0b0'0000000,0b0'0000000}},
@@ -751,7 +754,8 @@ TEST_CASE("NonEmptyPrefixedBitField: 8bit fixed size array min 2, max 3", "[NonE
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = NonEmptyPrefixedBitField<uint8_t, /* 8bit elements */8, /* min */ 2, /* max */3>;
+    
+    using T_SUT = NumericArrayBitField<uint8_t, 8, 2, 3, ArrayEncoding::Prefixed>;
     T_SUT input{};
     T_SUT output{};
 
@@ -762,7 +766,7 @@ TEST_CASE("NonEmptyPrefixedBitField: 8bit fixed size array min 2, max 3", "[NonE
   }
 }
 
-TEST_CASE("FixedArrayBitField: 8bit fixed size array * 3 (30/32 bits usable)", "[FixedArrayBitField][unsigned][8-bit]") {
+TEST_CASE("FixedSizeArrayBitField: 8bit fixed size array * 3 (30/32 bits usable)", "[FixedSizeArrayBitField][unsigned][8-bit]") {
   auto [test_name, in_value, out_value, padding, expected_len, expected_bytes] =
       GENERATE(table<std::string, std::vector<uint8_t>, std::vector<uint8_t>, uint8_t, size_t, std::vector<uint8_t>>({
           {"empty",          {},        {0,0,0}, 0, 24,   {0b00000000,0b00000000,0b00000000}},
@@ -771,7 +775,7 @@ TEST_CASE("FixedArrayBitField: 8bit fixed size array * 3 (30/32 bits usable)", "
       }));
 
   DYNAMIC_SECTION(test_name) {
-    using T_SUT = FixedArrayBitField<uint16_t, /* 8bit elements */8, /* 3 elements long */3>;
+    using T_SUT = NumericFixedArrayBitField<uint16_t, 8, 3>;
     T_SUT input{};
     T_SUT output{};
 
@@ -784,7 +788,7 @@ TEST_CASE("FixedArrayBitField: 8bit fixed size array * 3 (30/32 bits usable)", "
 
 TEST_CASE("ArrayBitField operator== should not compares stale tail bytes") {
   // Arrange
-  using F = PathBitField<uint8_t, 3, 3>; // Delimited, Min=0, Max=3
+  using F = NumericArrayBitField<uint8_t, 3, 0, 3>;
 
   F a{};
   F b{};
@@ -814,7 +818,7 @@ TEST_CASE("ArrayBitField should use delimited strategy for lengths equal to less
   auto expected_bytes = std::vector<uint8_t>{0b1'001'1'010, 0b1'011'0000};
   size_t expected_len = 12;
   // Act
-  using T_SUT = ArrayBitField<uint8_t, 3, 3>; // Delimited, Min=0, Max=3
+  using T_SUT = NumericArrayBitField<uint8_t, 3, 0, 3>; // Delimited, Min=0, Max=3
 
   T_SUT input{};
   T_SUT output{};
@@ -831,8 +835,8 @@ TEST_CASE("ArrayBitField should use prefix strategy for lengths greater then 3")
   auto expected_bytes = std::vector<uint8_t>{0b100'001'01,0b0'011'100'0};
   size_t expected_len = 15;
   // Act
-  using T_SUT = ArrayBitField<uint8_t, 3, 4>; // Delimited, Min=0, Max=4
-
+  using T_SUT = NumericArrayBitField<uint8_t, 3, 0, 4>;
+  
   T_SUT input{};
   T_SUT output{};
 
@@ -840,64 +844,6 @@ TEST_CASE("ArrayBitField should use prefix strategy for lengths greater then 3")
 
   REQUIRE_THAT_WRITE_IS_OK(input, 0, expected_len, expected_bytes);
   REQUIRE_THAT_READ_IS_OK(output, 0, value, bw.storage(), expected_len);
-}
-
-
-
-
-TEST_CASE("PathBitField: delimited pipeline works for !kGroupFitsInStorage (8-bit elements)", "[PathBitField][delimited][8-bit]") {
-  using T_SUT = PathBitField<uint8_t, 8, 2>; // Delimited, Min=0, Max=2
-
-  auto [test_name, value, expected_len, expected_bytes] =
-      GENERATE(table<std::string, std::vector<uint8_t>, size_t, std::vector<uint8_t>>({
-        // empty => single 0 bit
-        {"empty", {}, 1, {0b00000000}},
-
-        // 1 element => cont0=1, code0=0xAB, terminator=0  => 10 bits
-        // bits: 1 10101011 0
-        // bytes: 11010101 10000000
-        {"one", {0xAB}, 10, {0xD5, 0x80}},
-
-        // 2 elements (max) => cont0=1, code0=0xAB, cont1=1, code1=0xCD (no terminator) => 18 bits
-        // bits: 1 10101011 1 11001101
-        // bytes: 11010101 11110011 01000000
-        {"two (max)", {0xAB, 0xCD}, 18, {0xD5, 0xF3, 0x40}},
-      }));
-
-  DYNAMIC_SECTION(test_name) {
-    T_SUT input{};
-    T_SUT output{};
-
-    REQUIRE(input.set_value(value) == BitFieldResult::Ok);
-
-    REQUIRE_THAT_WRITE_IS_OK(input, /*padding*/0, expected_len, expected_bytes);
-    REQUIRE_THAT_READ_IS_OK(output, /*padding*/0, value, bw.storage(), expected_len);
-  }
-}
-
-TEST_CASE("PathBitField: delimited pipeline works for kGroupFitsInStorage (3-bit elements)", "[PathBitField][delimited][3-bit]") {
-  using T_SUT = PathBitField<uint8_t, 3, 2>; // Delimited, Min=0, Max=2
-
-  auto [test_name, value, expected_len, expected_bytes] =
-      GENERATE(table<std::string, std::vector<uint8_t>, size_t, std::vector<uint8_t>>({
-        {"empty", {}, 1, {0b00000000}},
-
-        // 1 element => 1 001 0  (5 bits)
-        {"one", {1}, 5, {0b1'001'0'000}},
-
-        // 2 elements => 1 001 1 010 (8 bits)
-        {"two (max)", {1, 2}, 8, {0b1'001'1'010}},
-      }));
-
-  DYNAMIC_SECTION(test_name) {
-    T_SUT input{};
-    T_SUT output{};
-
-    REQUIRE(input.set_value(value) == BitFieldResult::Ok);
-
-    REQUIRE_THAT_WRITE_IS_OK(input, /*padding*/0, expected_len, expected_bytes);
-    REQUIRE_THAT_READ_IS_OK(output, /*padding*/0, value, bw.storage(), expected_len);
-  }
 }
 
 
@@ -1852,14 +1798,14 @@ TEST_CASE("FiveBitStringBitField<char>: README roundtrip", "[FiveBitStringBitFie
   REQUIRE(input.set_value(utf8) == BitFieldResult::Ok);
 
   // Encode into a dynamic bit buffer
-  DynamicBitWriter bw;
+  UnboundedBitWriter bw;
   auto write_result = write_field(bw, input);
   REQUIRE(write_result == BitFieldResult::Ok);
 
   INFO("B5 encoded size: " << bw.storage().size() << " bytes, " << bw.size().bit_size() << " bits");
 
   // Decode back out
-  DynamicBitReader br(bw.storage(), bw.size());
+  UnboundedBitReader br(bw.storage(), bw.size());
   auto read_result = read_field(br, output);
   REQUIRE(read_result == BitFieldResult::Ok);
 
@@ -1922,7 +1868,7 @@ SUB8_DECLARE_DTO(ArrayItem,
   (Uint16ValueField, feild_2)
 );
 
-using ItemArray = ArrayBitField<ArrayItem, 0, 5>;
+using ItemArray = ObjectArrayBitField<ArrayItem, 0, 3>;
 
 SUB8_DECLARE_DTO(ObjectArray, 
   (ItemArray, list)

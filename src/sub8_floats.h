@@ -411,8 +411,7 @@ struct FixedLengthFloatField {
 };
 
 template<typename Storage, typename FloatT, uint32_t E, uint32_t F>
-inline BitFieldResult write_field(BasicBitWriter<Storage> &bw,
-                                  const FixedLengthFloatField<FloatT, E, F> &fld) noexcept {
+inline BitFieldResult write_field(BasicBitWriter<Storage> &bw, const FixedLengthFloatField<FloatT, E, F> &fld) noexcept {
   using Field = FixedLengthFloatField<FloatT, E, F>;
   using U = typename Field::StorageType;
   const U bits = fpbits::pack<FloatT, int(E), int(F)>(fld.value());
@@ -425,8 +424,11 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br, FixedLengthFloatFi
   using U = typename Field::StorageType;
 
   U bits = 0;
-  if (!br.template get_bits<U>(bits, Field::TotalUsableBits))
-    return BitFieldResult::ErrorExpectedMoreBits;
+  auto r = br.template get_bits<U>(bits, Field::TotalUsableBits);
+  if (r != BitFieldResult::Ok) {
+    return r;
+  }
+
 
   const FloatT v = fpbits::unpack<FloatT, int(E), int(F)>(bits);
   return out.set_value_unsafe(v);

@@ -422,14 +422,17 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br, OptionalBitFieldT<
                 "read_field(OptionalBitFieldT<...,TField>) currently requires TField default ctor.");
 
   uint8_t present = 0;
-  if (!br.template get_bits<uint8_t>(present, 1))
-    return BitFieldResult::ErrorExpectedMoreBits;
+
+  auto r = br.template get_bits<uint8_t>(present, 1);
+  if (r != BitFieldResult::Ok) {
+    return r;
+  }
 
   if (!present)
     return BitFieldResult::Ok;
 
   TField tmp{};
-  auto r = read_field(br, tmp);
+  r = read_field(br, tmp);
   if (r != BitFieldResult::Ok)
     return r;
 

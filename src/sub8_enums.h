@@ -131,8 +131,10 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br, EnumBitField<EnumT
   using ST = typename F::StorageType;
 
   ST code = 0;
-  if (!br.template get_bits<ST>(code, F::TotalUsableBits))
-    return BitFieldResult::ErrorExpectedMoreBits;
+  auto r = br.template get_bits<ST>(code, F::TotalUsableBits);
+  if (r != BitFieldResult::Ok) {
+    return r;
+  }
 
   // Must fall in [0..RangeSize-1]
   if (code >= F::RangeSize)

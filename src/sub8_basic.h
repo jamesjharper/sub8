@@ -9,7 +9,7 @@
 
 namespace sub8 {
 
-// make
+// make helpers
 
 template<typename TFeildType> inline BitFieldResult make(typename TFeildType::InitType t_val, TFeildType &out) {
   TFeildType tmp{};

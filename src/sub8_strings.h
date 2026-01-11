@@ -620,9 +620,15 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br, BasicStringField<C
     auto expected_bits = dec.expected_next_bit_len();
     uint8_t get_n_bits = (expected_bits < 32) ? expected_bits : 32;
 
+
+    // read more bits from stream.
+    // Note, that the decode may request zero bits to read as it still has
+    // buffered content i wanted to emit. Calling br.get_bits(...) with a length
+    // of zero should not have any negative side effects 
     uint32_t raw_bits = 0;
-    if (get_n_bits != 0 && !br.get_bits(raw_bits, get_n_bits)) {
-      return BitFieldResult::ErrorExpectedMoreBits;
+    auto r = br.get_bits(raw_bits, get_n_bits);
+    if (r != BitFieldResult::Ok) {
+      return r;
     }
 
     if (dec.try_decode_byte(raw_bits, get_n_bits, cp)) {

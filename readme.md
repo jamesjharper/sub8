@@ -23,7 +23,7 @@ Suppose you want to transmit:
 
 ```cpp
 
-FixedBitWriter<64> bw; 
+BoundedBitWriter<64> bw; 
 
 
 sub8::BitWriter writer(buffer, sizeof(buffer));

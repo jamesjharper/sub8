@@ -21,12 +21,13 @@ LDLIBS    += -lCatch2Main -lCatch2
 
 # Directories
 TEST_DIR   := tests
+SRC_DIR    := src
 BUILD_DIR  := build
 OBJ_DIR    := $(BUILD_DIR)/obj
 TARGET     := $(BUILD_DIR)/loradb_tests
 
 # Source files
-LIB_SRCS   := $(wildcard *.cpp)
+LIB_SRCS   := $(wildcard $(SRC_DIR)/*.cpp)
 TEST_SRCS  := $(wildcard $(TEST_DIR)/*.cpp)
 
 # All sources to build into the test binary

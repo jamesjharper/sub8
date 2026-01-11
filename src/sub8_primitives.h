@@ -160,7 +160,7 @@ struct FixedLengthBitField {
 };
 
 template<typename Storage, typename T, uint32_t BitLength>
-inline BitFieldResult write_field(BasicBitWriter<Storage> &bw, const FixedLengthBitField<T, BitLength> &f) {
+inline BitFieldResult write_field(BasicBitWriter<Storage> &bw, const FixedLengthBitField<T, BitLength> &f) noexcept {
   using F = FixedLengthBitField<T, BitLength>;
   using StorageType = typename F::StorageType;
 
@@ -172,16 +172,19 @@ inline BitFieldResult write_field(BasicBitWriter<Storage> &bw, const FixedLength
 }
 
 template<typename Storage, typename T, uint32_t BitLength>
-inline BitFieldResult read_field(BasicBitReader<Storage> &br, FixedLengthBitField<T, BitLength> &out) {
+inline BitFieldResult read_field(BasicBitReader<Storage> &br, FixedLengthBitField<T, BitLength> &out)  noexcept {
   using F = FixedLengthBitField<T, BitLength>;
   using StorageType = typename F::StorageType;
 
   StorageType tmp = 0;
-  if (!br.template get_bits<StorageType>(tmp, F::TotalUsableBits))
-    return BitFieldResult::ErrorExpectedMoreBits;
+  auto r = br.template get_bits<StorageType>(tmp, F::TotalUsableBits);
+  if (r != BitFieldResult::Ok) {
+    return r;
+  }
 
-  if (tmp > F::MaxCode)
+  if (tmp > F::MaxCode) {
     return BitFieldResult::ErrorValueTooLarge;
+  }
 
   return out.set_value(sub8::packing::unpack<T>(tmp));
 }
@@ -355,11 +358,14 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br,
 
   if constexpr (F::MaxGroupCount == 1) {
     U chunk_bits = 0;
-    if (!br.template get_bits<U>(chunk_bits, F::DataBitsPerGroup))
-      return BitFieldResult::ErrorExpectedMoreBits;
+    auto r = br.template get_bits<U>(chunk_bits, F::DataBitsPerGroup);
+    if (r != BitFieldResult::Ok) {
+      return r;
+    }
 
-    if (chunk_bits > F::MaxCode)
+    if (chunk_bits > F::MaxCode) {
       return BitFieldResult::ErrorValueTooLarge;
+    }
 
     return out.set_value(packing::unpack<T>(chunk_bits));
   }
@@ -370,14 +376,19 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br,
   while (true) {
     if (groups_read + 1 < F::MaxGroupCount) {
       U group_bits = 0;
-      if (!br.template get_bits<U>(group_bits, F::GroupBitSize))
-        return BitFieldResult::ErrorExpectedMoreBits;
+
+      
+      auto r = br.template get_bits<U>(group_bits, F::GroupBitSize);
+      if (r != BitFieldResult::Ok) {
+        return r;
+      }
 
       const U data = static_cast<U>(group_bits & F::GroupDataMask);
       const bool cont = (group_bits >> F::DataBitsPerGroup) != 0;
 
-      if (accum > ACCUM_LIMIT)
+      if (accum > ACCUM_LIMIT) {
         return BitFieldResult::ErrorValueTooLarge;
+      }
 
       accum = static_cast<U>((accum << F::DataBitsPerGroup) | data);
       ++groups_read;
@@ -387,11 +398,15 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br,
     } else {
       // Last possible group
       U data = 0;
-      if (!br.template get_bits<U>(data, F::DataBitsPerGroup))
-        return BitFieldResult::ErrorExpectedMoreBits;
 
-      if (accum > ACCUM_LIMIT)
+      auto r = br.template get_bits<U>(data, F::DataBitsPerGroup);
+      if (r != BitFieldResult::Ok) {
+        return r;
+      }
+
+      if (accum > ACCUM_LIMIT) {
         return BitFieldResult::ErrorValueTooLarge;
+      }
 
       accum = static_cast<U>((accum << F::DataBitsPerGroup) | (data & F::GroupDataMask));
       ++groups_read;
@@ -417,9 +432,11 @@ template<typename Storage> inline BitFieldResult write_field(BasicBitWriter<Stor
 
 template<typename Storage> inline BitFieldResult read_field(BasicBitReader<Storage> &br, BoolValueField &out) {
   size_t tmp = 0;
-  if (!br.get_bits(tmp, 1)) {
-    return BitFieldResult::ErrorExpectedMoreBits;
+  auto r = br.get_bits(tmp, 1);
+  if (r != BitFieldResult::Ok) {
+    return r;
   }
+
   return out.set_value((tmp & 1u) != 0u);
 }
 

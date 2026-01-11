@@ -1,11 +1,11 @@
 
-#include "./../sub8.h"
+
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
 
 #include <catch2/catch_all.hpp>
-
+#include "./../src/sub8.h"
 
 using namespace sub8;
 
@@ -14,14 +14,14 @@ using namespace sub8;
 
 TEST_CASE("Inline reading and writing") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   write_or_throw<BoolValueField>(bit_writer, true);
   write_or_throw<Uint8ValueField>(bit_writer, 3);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto bool_read_val = read_or_throw<BoolValueField>(bit_reader);
@@ -52,7 +52,7 @@ TEST_CASE("Specialized data transmission types") {
   using Int24Pack8ValueField = VariableLengthBitField<uint32_t, /*DataBitsPerGroup=*/8, /* Max Groups */ 3>;
 
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   write_or_throw<Uint3ValueField>(bit_writer, 1);
@@ -60,7 +60,7 @@ TEST_CASE("Specialized data transmission types") {
   write_or_throw<Int24Pack8ValueField>(bit_writer, 5234);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto uint3_read_val = read_or_throw<Uint3ValueField>(bit_reader);
@@ -84,7 +84,7 @@ TEST_CASE("Optional data transmission types") {
   using StdOptionalUint8ValueField = StdOptionalBitField<Uint8ValueField>;
 
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
 
@@ -96,7 +96,7 @@ TEST_CASE("Optional data transmission types") {
   write_or_throw<StdOptionalUint8ValueField>(bit_writer, StdOptionalUint8ValueField::make_none());
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto opt_uint8_read_val = read_or_throw<OptionalUint8ValueField>(bit_reader);
@@ -124,13 +124,13 @@ TEST_CASE("Enum type") {
   using MsgTypeField = EnumBitField<MsgType, MsgType::Ping, MsgType::Ack>;
 
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   write_or_throw<MsgTypeField>(bit_writer, MsgType::Data);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto enum_read_val = read_or_throw<MsgTypeField>(bit_reader);
@@ -144,7 +144,7 @@ SUB8_DECLARE_DTO(MacroGeneratedDataTransferObjectExample, (Uint16ValueField, fei
 
 TEST_CASE("Macro Generated Data Transfer Data Transfer Object") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   MacroGeneratedDataTransferObjectExample transmit_dto;
@@ -155,7 +155,7 @@ TEST_CASE("Macro Generated Data Transfer Data Transfer Object") {
   write_or_throw(bit_writer, transmit_dto);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_dto = read_or_throw<MacroGeneratedDataTransferObjectExample>(bit_reader);
@@ -192,7 +192,7 @@ inline BitFieldResult read_field(BasicBitReader<Storage> &br, ManualDataTransfer
 
 TEST_CASE("Hand crafted Data Transfer Data Transfer Object") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   ManualDataTransferObjectExample transmit_dto;
@@ -203,7 +203,7 @@ TEST_CASE("Hand crafted Data Transfer Data Transfer Object") {
   write_or_throw(bit_writer, transmit_dto);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   ManualDataTransferObjectExample receive_dto;
@@ -213,9 +213,9 @@ TEST_CASE("Hand crafted Data Transfer Data Transfer Object") {
   REQUIRE(receive_dto.feild_2 == transmit_dto.feild_2);
 }
 
-using Uint3Path = PathBitField<uint8_t, 3 /* bits per element */, 3 /* max elements */>;
-using Uint10Array = ArrayBitField<uint16_t, 10 /* bits per element */, 6 /* max elements */>;
-using Uint5FixedArray = FixedArrayBitField<uint16_t, 5 /* bits per element */, 6 /* max elements */>;
+using Uint3Path = NumericArrayBitField<uint8_t, 3 /* bits per element */,0, 3 /* max elements */>;
+using Uint10Array = NumericArrayBitField<uint16_t, 10 /* bits per element */, 0, 6 /* max elements */>;
+using Uint5FixedArray = NumericFixedArrayBitField<uint16_t, 5 /* bits per element */, 6 /* max elements */>;
 
 // Reading and writing Paths, Array and fixed Arrays
 // --------------------------------------------------------
@@ -223,7 +223,7 @@ using Uint5FixedArray = FixedArrayBitField<uint16_t, 5 /* bits per element */, 6
 
 TEST_CASE("Array Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
 
@@ -244,7 +244,7 @@ TEST_CASE("Array Example") {
   write_or_throw<Uint5FixedArray>(bit_writer, init_with_stack_array);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto path1 = read_or_throw<Uint3Path>(bit_reader);
@@ -268,7 +268,7 @@ SUB8_DECLARE_DTO(NestedObjectExample, (NestedExample, inner));
 
 TEST_CASE("Nested Object Type Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   NestedObjectExample transmit_object{.inner = NestedExample{.feild_1 = {1}, .feild_2 = {45}}};
@@ -276,7 +276,7 @@ TEST_CASE("Nested Object Type Example") {
   write_or_throw(bit_writer, transmit_object);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_dto = read_or_throw<NestedObjectExample>(bit_reader);
@@ -290,13 +290,13 @@ TEST_CASE("Nested Object Type Example") {
 
 SUB8_DECLARE_DTO(ItemExample, (Uint16ValueField, feild_1), (Uint32ValueField, feild_2));
 
-using ItemExampleArray = NestedBitField<ItemExample, 5>;
+using ItemExampleArray = ObjectArrayBitField<ItemExample, 0, 5>;
 
 SUB8_DECLARE_DTO(ObjectArrayExample, (ItemExampleArray, list));
 
 TEST_CASE("Nested Array Type Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   ObjectArrayExample transmit_object{
@@ -314,7 +314,7 @@ TEST_CASE("Nested Array Type Example") {
   write_or_throw(bit_writer, transmit_object);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_dto = read_or_throw<ObjectArrayExample>(bit_reader);
@@ -330,7 +330,7 @@ TEST_CASE("Nested Array Type Example") {
 
 TEST_CASE("Variant Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
 
@@ -341,7 +341,7 @@ TEST_CASE("Variant Example") {
   write_or_throw(bit_writer, transmit_var_2);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_var_1 = read_or_throw<VariantValueField>(bit_reader);
@@ -363,7 +363,7 @@ SUB8_DECLARE_VARIANT_FIELD(CustomVariantValueField, VARIANT_VALUE_CASES);
 
 TEST_CASE("Custom Variant Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
 
@@ -374,7 +374,7 @@ TEST_CASE("Custom Variant Example") {
   write_or_throw(bit_writer, transmit_var_2);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_var_1 = read_or_throw<CustomVariantValueField>(bit_reader);
@@ -389,7 +389,7 @@ TEST_CASE("Custom Variant Example") {
 
 TEST_CASE("String Example") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
 
@@ -398,7 +398,7 @@ TEST_CASE("String Example") {
   write_or_throw(bit_writer, transmit_string);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_string = read_or_throw<B5StringField<>>(bit_reader);
@@ -419,7 +419,7 @@ SUB8_DECLARE_DTO(
   (Uint32ValueField, feild_2)
 );
 
-using MessageItemArray = NestedBitField<MessageItem, 5>;
+using MessageItemArray = ObjectArrayBitField<MessageItem, 0, 5>;
 
 SUB8_DECLARE_DTO(HelloResponseMessage, 
   (B5StringField<>, response_phrase), 
@@ -434,7 +434,7 @@ SUB8_DECLARE_VARIANT_FIELD(HelloMessage, HELLO_MESSAGE_SCHEMA);
 
 TEST_CASE("Putting it all together Example!") {
   // Initialize a target write buffer
-  DynamicBitWriter bit_writer;
+  UnboundedBitWriter bit_writer;
 
   // Write fields to writer
   HelloRequestMessage msg{};
@@ -446,7 +446,7 @@ TEST_CASE("Putting it all together Example!") {
   write_or_throw(bit_writer, transmit_message);
 
   // Initialize read buffer
-  DynamicBitReader bit_reader(bit_writer.storage(), bit_writer.size());
+  UnboundedBitReader bit_reader(bit_writer.storage(), bit_writer.size());
 
   // read values in the same order as written
   auto receive_message = read_or_throw<HelloMessage>(bit_reader);

@@ -25,6 +25,14 @@ enum class BitFieldResult : uint8_t {
   ErrorInsufficentBufferSize,
   ErrorCanNotWriteNullValue,
   ErrorCanNotReadNullValue,
+
+
+  ErrorTooManyBits,
+  // IO Errors
+  ErrorBadAlloc,
+  ErrorOversizedLength,
+
+  ErrorUnidentifiedError,
 };
 
 namespace error {
@@ -45,13 +53,21 @@ inline const char *to_string(BitFieldResult r) {
     case BitFieldResult::ErrorValueTooLarge:
       return "Value is larger or smaller then the field value can hold";
     case BitFieldResult::ErrorExpectedMoreBits:
-      return "Can read value from as the buffer has less bytes available then expected";
+      return "Cant read value from as the buffer has less bytes available then expected";
+    case BitFieldResult::ErrorTooManyBits:
+      return "Cant read/write value to buffer as it has more bits the the provided storage type.";
     case BitFieldResult::ErrorInsufficentBufferSize:
       return "Can write to buffer as there is insufficent space available";
     case BitFieldResult::ErrorCanNotWriteNullValue:
       return "Can not write type \"NullValueField\" to stream";
     case BitFieldResult::ErrorCanNotReadNullValue:
       return "Can not read type \"NullValueField\" to stream";
+    case BitFieldResult::ErrorBadAlloc:
+      return "Allocation failed";
+    case BitFieldResult::ErrorOversizedLength:
+      return "Requested size exceeds max_size()";
+    case BitFieldResult::ErrorUnidentifiedError:
+      return "STL subsystem threw an unexpected exception type";
   }
   return "UnknownBitFieldResult";
 }

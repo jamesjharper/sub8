@@ -21,7 +21,8 @@ namespace limits {
 
 template<typename T> using underlying_or_self_t = typename unpack_t::underlying_or_self<T>::type;
 
-template<typename T, uint32_t Bits> struct bits_limits {
+template<typename T, uint32_t Bits>
+struct bits_limits {
   using UnderlyingType = underlying_or_self_t<T>;
   using StorageType = std::make_unsigned_t<UnderlyingType>;
 
