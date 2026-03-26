@@ -1,0 +1,349 @@
+codegen:
+  schema:
+    - field: { name: "sub8_file_path", type: "string"}
+    - field: { name: "default_namespace", type: "string"}
+
+  generators:
+    cpp:
+      schema:
+        - field: { name: "header", type: "string", required: true }
+        - field: { name: "source", type: "string", required: true }
+        - field: { name: "inline_headers", type: "bool", default_value: true}
+
+  # code Config is something which can be used to define some configuration which manifests into real code
+codegen_config_kinds:
+      __inline_headers:
+        schema: { type: bool, required: true, default_value: true }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_INLINE_HEADERS"
+
+      never_throw_exceptions:
+        schema: { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_NEVER_THROW_EXCEPTIONS"
+
+      infallible_methods_only:
+        schema: { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_INFALLIBLE"
+
+      allow_discarding_results:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_NO_DISCARD_RESULTS"
+
+      no_malloc_exceptions:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_NO_MALLOC_EXCEPTIONS"
+
+      enable_stl:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_STL_TYPE"
+
+      enable_stl_vectors:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_STL_TYPE_VECTOR"
+
+      enable_stl_arrays:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_STL_TYPE_ARRAY"
+
+      enable_stl_initializer_lists:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_STL_TYPE_INITIALIZER_LIST"
+
+
+      enable_stl_strings:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_BASIC_STRING"
+
+      enable_stl_optional:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_OPTIONAL_FIELDS"
+
+      enable_bounded_buffers:
+        schema:  { type: bool, required: true, default_value: true }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_BOUNDED_BUF"
+
+      enable_unbounded_buffers:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_UNBOUNDED_BUF"
+
+      enable_buffer_views:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_VIEW_BUF"
+
+      enable_checked_arithmetic:
+        schema:  { type: bool, required: true, default_value: false }
+        cpp:
+          type: "cpp_define"
+          define: "SUB8_ENABLE_CHECKED_ARITHMETIC"
+
+# Kind is something which defines a type with is backed by some code gen process which creates an actual type information 
+kinds:
+  object:
+    code_gen:
+      cpp:
+        type: "cpp_object"
+        includes: 
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+    schema:
+      - field: { name: "namespace", type: "string", required: false }
+      - map: { name: "fields",  key_type: string, value_type: "kind", required: true }
+
+  variant:
+    code_gen:
+      cpp:
+        type: "cpp_variant" 
+        includes: 
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_enums.h"
+    schema:
+      - field: { name: "namespace", type: "string", required: false }
+      - map: 
+          name: "options"
+          required: true
+          key_type: string 
+          value_type: 
+            schema:
+              - field: { name: "id", type: u32, required: true }
+              - field: { name: "type", type: "type_ref", required: true }
+
+  integer:
+    schema:
+      - field: { name: "bitwidth", type: u32, required: true }
+      - field: { name: "signed", type: bool, required: true }
+    code_gen:
+      cpp: 
+        type: "cpp_struct"
+        def: "sub8::Integer<${schema.bitwidth}, ${schema.signed}>"
+        namespace: "sub8"
+        includes: 
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_primitives.h"
+
+  vbr_integer:
+    schema:
+      - field: { name: "signed", type: bool, required: true }
+      - field: { name: "segments", type: "u32[]", required: true }
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        def: "sub8::VbrInteger<${schema.signed}, ${schema.segments}>"
+        namespace: "sub8"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_primitives.h"
+
+  float:
+    schema:
+      - field: { name: "exponent", type: u32, required: true }
+      - field: { name: "fraction", type: u32, required: true }
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        def: "sub8::FloatingPoint<${schema.exponent}, ${schema.fraction}>"
+        namespace: "sub8"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_floats.h"
+
+
+  optional:
+    schema:
+      - field: { name: "no_alloc", type: bool, required: false, default_value: true }
+      - field: { name: "type", type: type_ref, required: true }
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        def: "sub8::TOptionalContainer<${fn.is_true(${schema.no_alloc})? sub8::non_alloc_optional : std::optional }, ${schema.type}>"
+        namespace: "sub8"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h" 
+          - "sub8_optional.h"
+
+
+  array_encoding:
+    schema: { type: enum, required: true, values: [three_plus_prefixed, delimited, prefixed] }
+    code_gen:   
+      cpp: # Idea is things here a configuring C++ related code gen attributes. Theres no plan to support additional languages, not want to keep options open 
+        type: "cpp_enum"
+        def: "ArrayEncoding"
+        namespace: "sub8"
+        includes: 
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_arrays.h"
+        values:
+          three_plus_prefixed: "ThreePlusPrefixed"
+          delimited: "Delimited"
+          prefixed: "Prefixed"
+
+  buffer:
+    schema:
+      - field: { name: "min_elements", type: u32, required: false, default_value: 0 }
+      - field: { name: "max_elements", type: u32, required: true }
+      - field: { name: "encoding", type: "array_encoding", default_value: "three_plus_prefixed" }
+      - field: { name: "bitwidth", type: u32, required: true }
+      - field: { name: "signed", type: bool, required: false, default_value: false  }
+
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        def: "sub8::Array< sub8::PrimitiveElement<${schema.bitwidth}, ${schema.signed}>, ${schema.min_elements}, ${schema.max_elements}, ${schema.encoding}>"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_arrays.h"
+        namespace: "sub8"
+
+  array:
+    schema:
+      - field: { name: "min_elements", type: u32, required: false, default_value: 0 }
+      - field: { name: "max_elements", type: u32, required: true }
+      - field: { name: "encoding", type: "array_encoding", default_value: "three_plus_prefixed" }
+      - field: { name: "type", type: "type_ref", required: true }
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        def: "sub8::Array<sub8::ObjectElement<${schema.type}>, ${schema.min_elements}, ${schema.max_elements}, ${schema.encoding}>"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_arrays.h"
+        namespace: "sub8"
+
+
+  b5_charset:
+    schema: { type: enum, values: [latin, greek, cyrillic] }
+    code_gen:
+      cpp:
+        type: "cpp_enum"
+        def: "B5CharAddress"
+        namespace: "sub8::b5"
+        includes: 
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_strings.h"
+        values:
+          latin: "CHARSET_LATIN"
+          greek: "CHARSET_GREEK"
+          cyrillic: "CHARSET_CYRILLIC"
+
+  b5_table:
+    schema: { type: enum, values: [lower_case, upper_case, numeric] }
+    code_gen:
+      cpp:
+        type: "cpp_enum"
+        def: "B5CharAddress"
+        namespace: "sub8::b5"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_strings.h"
+        values:
+          lower_case: "TABLE_T0"
+          upper_case: "TABLE_T1"
+          numeric: "TABLE_T2"
+
+  b5_string:
+    schema:
+      - field: { name: "max_length", type: u32, required: true }
+      - field: { name: "terminated_sequence", type: bool, required: false, default_value: false }
+      - field: { name: "starting_multi_code_state", type: bool, required: false, default_value: false }
+      - field: { name: "starting_charset", type: "kind::b5_charset", required: false, default_value: "latin" }
+      - field: { name: "starting_table", type: "kind::b5_table", required: false, default_value: "lower_case" }
+      - field: { name: "bounded_buffer_size", type: u32, required: "${fn.is_false(${code_config.enable_stl_strings})}"}
+
+    code_gen:
+      cpp:
+        type: "cpp_struct"
+        includes:
+          - "sub8_errors.h"
+          - "sub8_type_information.h"
+          - "sub8_io.h"
+          - "sub8_api.h"
+          - "sub8_strings.h"
+        source: 
+          - "sub8_strings.cpp"
+        def: |
+          {has(bounded_buffer_size)?
+            sub8::BoundedString<${schema.bounded_buffer_size},
+              sub8::B5Encoder<${schema.max_length}, ${schema.terminated_sequence}, ${schema.starting_multi_code_state},
+                              ${schema.starting_charset}, ${schema.starting_table}>,
+              sub8::B5Decoder<${schema.max_length}, ${schema.terminated_sequence}, ${schema.starting_multi_code_state},
+                              ${schema.starting_charset}, ${schema.starting_table}>>
+          :
+            sub8::UnboundedString<
+              sub8::B5Encoder<${schema.max_length}, ${schema.terminated_sequence}, ${schema.starting_multi_code_state},
+                              ${schema.starting_charset}, ${schema.starting_table}>,
+              sub8::B5Decoder<${schema.max_length}, ${schema.terminated_sequence}, ${schema.starting_multi_code_state},
+                              ${schema.starting_charset}, ${schema.starting_table}>>
+          }
+
+
+
+# Types are instances of kinds with all required field values defined
+# type can be extended. When a type is extended the child definitions over write the parent
+# and thing which isnt over written is inherited 
+types:
+
+  u16: { kind: integer, bitwidth: 16, signed: false, emit_only_if_referenced: true }
+  u32: { kind: integer, bitwidth: 32, signed: false, emit_only_if_referenced: true  }
+  # There are more standard types which need to be filled out
+  bfloat16: { kind: float, exponent: 8, fraction: 7, emit_only_if_referenced: true  }
+
+  # Note: emit_only_if_referenced: true . This tells the code gen to only emit this type if actually referenced. This is 
+  # to ensure code is only generated for whats used / needed. This value is true by default,

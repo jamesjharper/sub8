@@ -1,0 +1,20 @@
+BasedOnStyle: LLVM
+ColumnLimit: 140
+
+AlignAfterOpenBracket: DontAlign
+ContinuationIndentWidth: 2
+
+BinPackArguments: true
+BinPackParameters: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+
+AlwaysBreakTemplateDeclarations: No
+BreakTemplateDeclarations: No
+
+PenaltyBreakBeforeFirstCallParameter: 1000
+PenaltyBreakTemplateDeclaration: 1000
+PenaltyExcessCharacter: 50

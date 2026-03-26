@@ -1,0 +1,87 @@
+# imports are just a mechanism "including" another file. Before code gen, all files are merged together.
+# Json/yaml dictionaries are also merged with conflicting keys being overwritten in order the appear
+import:
+  - core.yaml
+
+# substitutes are values which can be injected into anywhere in yaml file
+substitute:
+    some_example_value: false
+    some_other_example_value: 128
+
+codegen:
+    sub8_file_path: "." # is appended to all the "#includes" 
+    default_namespace: "users::name::space" # A global namespace can be set
+
+    cpp:
+        header: "generated/example.h" # output file
+        source: "generated/example.cpp" # output file
+        inline_headers: true
+
+# manifestation of codegen_config_kinds
+code_config:
+    # code_config can also behave as values which can be injected into anywhere in yaml file
+    never_throw_exceptions: false
+    infallible_methods_only: "${some_example_value}"
+    allow_discarding_results: false
+    no_malloc_exceptions: false
+    enable_stl: true
+    enable_stl_vectors: true
+    enable_stl_arrays: true
+    enable_stl_initializer_lists: true
+    enable_stl_strings: true
+    enable_stl_optional: true
+    enable_bounded_buffers: true
+    enable_unbounded_buffers: true
+    enable_buffer_views: true
+    enable_checked_arithmetic: true
+
+# same as types in core.yaml
+types:
+    HelloRequestMessage:
+        kind: "object"
+        namespace: "users::name::space"
+        fields:
+            say_it_n_time: u16
+            hello_phrase: # Example of alias in use
+                kind: b5_string 
+                max_length: ${some_other_example_value}
+                terminated_sequence: false
+                starting_multi_code_state: false
+                bounded_buffer_size: 64
+
+
+    HelloMessage:
+        kind: "variant" # Kinds have their own unique yaml structure.
+        namespace: "users::name::space"
+        options:
+            hello_request:
+                id: 1
+                type: HelloRequestMessage
+            hello_response:
+                id: 2
+                type: # inline type definition as an alterative way to define types
+                  name: HelloResponseMessage
+                  type: object
+                  # namespace: "users::name::space"  not needed should inherit from the type define above
+                  fields:
+                      response_phrase: 
+                        kind: b5_string 
+                        max_length: 64
+                        terminated_sequence: false
+                        starting_multi_code_state: false
+                        bounded_buffer_size: 64
+                      list:
+                          kind: array
+                          min_elements: 0
+                          max_elements: 5
+                          encoding: "delimited"
+                          type: MessageItem
+
+    # order should not matter
+    MessageItem:
+        kind: "object"
+        namespace: "users::name::space"
+        fields:
+            feild_1: u16
+            feild_2: u32
+            feild_3: bfloat16
