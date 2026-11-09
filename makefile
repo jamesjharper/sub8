@@ -135,7 +135,7 @@ CORE_SRCS := $(CPP_LIB_SRCS) $(CPP_TEST_SRCS)
 CORE_OBJS := $(patsubst %.cpp,$(OBJ_DIR)/core/%.o,$(CORE_SRCS))
 
 # Example test program: generated example.cpp + example_tests.cpp (NO library src/*.cpp)
-EXAMPLE_SRCS := $(CPP_GEN_SRCS) $(CPP_EXAMPLE_TEST_SRCS)
+EXAMPLE_SRCS := $(CPP_LIB_SRCS) $(CPP_GEN_SRCS) $(CPP_EXAMPLE_TEST_SRCS)
 EXAMPLE_OBJS := $(patsubst %.cpp,$(OBJ_DIR)/example/%.o,$(EXAMPLE_SRCS))
 
 # -----------------------------
