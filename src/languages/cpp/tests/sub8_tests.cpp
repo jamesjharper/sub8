@@ -10,6 +10,10 @@
 
 using namespace sub8;
 
+// Local aliases for the templated primitive fields used in legacy tests.
+using U8 = Integer<8>;
+using U16 = Integer<16>;
+
 #define REQUIRE_THAT_WRITE_IS_OK(input, padded_bits, expected_size, expected_vec)                                                          \
   BoundedBitWriter<128> bw;                                                                                                                \
   {                                                                                                                                        \
