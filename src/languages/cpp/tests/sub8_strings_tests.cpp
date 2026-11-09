@@ -580,6 +580,27 @@ TEST_CASE("FiveBitStringBitField<char>: unsupported dollar sign decodes as repla
   require_strings_match(output.view(), std::string_view(expected));
 }
 
+TEST_CASE("FiveBitStringBitField<char>: exit extended mode before ordinary character",
+          "[FiveBitStringBitField][5-bit][string][mode_transition]") {
+  using T_SUT = UnboundedB5String<128>;
+
+  // '(' and ')' are extended B5 characters, so they enter 10-bit mode.
+  // '-' is a normal 5-bit character; '>' is extended again. The encoder
+  // must exit 10-bit mode before emitting '-', even with '>' immediately next.
+  const std::string original = "()->";
+  T_SUT input{};
+  REQUIRE(input.set_value(original) == BitFieldResult::Ok);
+
+  UnboundedBitWriter bw;
+  REQUIRE(write_field(bw, input) == BitFieldResult::Ok);
+
+  UnboundedBitReader br(bw.storage(), bw.size());
+  T_SUT output{};
+  REQUIRE(read_field(br, output) == BitFieldResult::Ok);
+  require_strings_match(output.view(), std::string_view(original));
+  REQUIRE(br.cursor_position().bit_size() == bw.size().bit_size());
+}
+
 // -------------------------------------------------------------
 // README roundtrip
 // -------------------------------------------------------------
