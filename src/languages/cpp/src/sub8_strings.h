@@ -1681,7 +1681,14 @@ public:
         previous_multi_code_state_ = true;
       }
     } else {
-      if (!head.is_extended_char() && (!look_ahead_1.is_null() && !look_ahead_1.is_extended_char())) {
+      // Interleaved ordinary characters can use a two-code representation
+      // while staying in extended mode, which saves a mode transition.
+      // Code 28 is special: the decoder interprets it as a charset switch
+      // when paired with an extension code. Exit extended mode before
+      // emitting that code (used by '-' and other table entries at 28).
+      if (!head.is_extended_char() &&
+          (head.char_code() == B5CharAddress::SWITCH_CHARSET_CODE ||
+           look_ahead_1.is_null() || !look_ahead_1.is_extended_char())) {
         // emit chars to go to exit multi byte mode
         seq_len += emit_exit_multi_byte_mode_control_char(buffer, len);
         previous_multi_code_state_ = false;

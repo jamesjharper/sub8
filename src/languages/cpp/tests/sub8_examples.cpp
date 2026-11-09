@@ -9,6 +9,13 @@
 
 using namespace sub8;
 
+// These examples use short local names; the library exposes Integer<N> rather
+// than the old globally predefined U4/U8/U16/U32 aliases.
+using U4 = Integer<4>;
+using U8 = Integer<8>;
+using U16 = Integer<16>;
+using U32 = Integer<32>;
+
 // Inline reading and writing
 // --------------------------------------------------------
 
@@ -328,7 +335,7 @@ TEST_CASE("Variant Example") {
 
   // Write fields to writer
 
-  auto transmit_var_1 = make_uint4_variant(2);
+  auto transmit_var_1 = make_bool_variant(true);
   auto transmit_var_2 = make_null_variant();
 
   write_or_throw(bit_writer, transmit_var_1);

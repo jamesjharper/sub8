@@ -479,8 +479,8 @@ public:
   SUB8_NO_DISCARD static BitFieldResult make(Type v, VbrInteger &out) noexcept { return out.set_value(v); }
 
   #if !SUB8_ENABLE_INFALLIBLE
-  static Boolean make_or_throw(Type v) SUB8_OPT_NO_EXCEPT {
-    Boolean out{};
+  static VbrInteger make_or_throw(Type v) SUB8_OPT_NO_EXCEPT {
+    VbrInteger out{};
     auto r = out.set_value(v);
     SUB8_THROW_IF_ERROR(r, VbrInteger, "VbrInteger::make_or_throw(Type)");
     return out;

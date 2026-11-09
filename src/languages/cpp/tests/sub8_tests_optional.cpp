@@ -11,6 +11,11 @@
 
 using namespace sub8;
 
+// Local aliases for the templated fixed-width fields used in these tests.
+using U8 = Integer<8>;
+using U16 = Integer<16>;
+using U32 = Integer<32>;
+
 
 #if SUB8_ENABLE_OPTIONAL_FIELDS
 

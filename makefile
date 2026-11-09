@@ -99,6 +99,7 @@ gen: $(GEN_STAMP)
 # This stamp makes codegen incremental: only re-run when inputs change.
 $(GEN_STAMP): \
 	$(CPP_EXAMPLE_YAML) \
+	$(SRC_PY_DIR)/std_yaml/core.yaml \
 	$(SRC_PY_DIR)/pipeline.py \
 	$(SRC_PY_DIR)/pipeline_core.py \
 	$(SRC_PY_DIR)/merge.py \
@@ -135,8 +136,14 @@ CORE_SRCS := $(CPP_LIB_SRCS) $(CPP_TEST_SRCS)
 CORE_OBJS := $(patsubst %.cpp,$(OBJ_DIR)/core/%.o,$(CORE_SRCS))
 
 # Example test program: generated example.cpp + example_tests.cpp (NO library src/*.cpp)
-EXAMPLE_SRCS := $(CPP_GEN_SRCS) $(CPP_EXAMPLE_TEST_SRCS)
+EXAMPLE_SRCS := $(CPP_LIB_SRCS) $(CPP_GEN_SRCS) $(CPP_EXAMPLE_TEST_SRCS)
 EXAMPLE_OBJS := $(patsubst %.cpp,$(OBJ_DIR)/example/%.o,$(EXAMPLE_SRCS))
+
+# Track transitive header dependencies for incremental C++ rebuilds.
+# Without these, modifying a header can leave stale inline definitions in
+# old object files and produce inconsistent behavior or ODR violations.
+DEPFILES := $(CORE_OBJS:.o=.d) $(EXAMPLE_OBJS:.o=.d)
+-include $(DEPFILES)
 
 # -----------------------------
 # C++ build
@@ -167,13 +174,13 @@ $(TARGET_EXAMPLE): $(EXAMPLE_OBJS)
 $(OBJ_DIR)/core/%.o: %.cpp $(GEN_STAMP)
 	@echo "Compiling (core): $<"
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXX_FLAGS) $(CXX_SANFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) $(CXX_SANFLAGS) $(INCLUDES) -MMD -MP -MF $(@:.o=.d) -c $< -o $@
 
 # Compile example objects
 $(OBJ_DIR)/example/%.o: %.cpp $(GEN_STAMP)
 	@echo "Compiling (example): $<"
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXX_FLAGS) $(CXX_SANFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXX_FLAGS) $(CXX_SANFLAGS) $(INCLUDES) -MMD -MP -MF $(@:.o=.d) -c $< -o $@
 
 # -----------------------------
 # Meta targets

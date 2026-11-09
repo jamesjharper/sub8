@@ -271,8 +271,13 @@ def emit_variant_decl(op: Dict[str, Any]) -> str:
 
     # Prepare codes including NullValue=0
     codes: List[Tuple[str, int, str]] = [("NullValue", 0, "sub8::NullValue")]
+    seen_ids = {0}
     for o in opts:
-        codes.append((o["name"], int(o["id"]), o["cpp"]))
+        oid = int(o["id"])
+        if oid <= 0 or oid > 0xFFFFFFFF or oid in seen_ids:
+            raise ValueError(f"Invalid or duplicate variant tag ID {oid} in {name}")
+        seen_ids.add(oid)
+        codes.append((o["name"], oid, o["cpp"]))
 
     out: List[str] = []
     out.append(ns_open(ns))
@@ -352,20 +357,20 @@ def emit_variant_decl(op: Dict[str, Any]) -> str:
 
     out.append(f"  {name}() noexcept;\n")
     out.append(f"  {name}(const {name}& o);\n")
-    out.append(f"  {name}({name}&& o) noexcept;\n")
+    out.append(f"  {name}({name}&& o);\n")
     out.append(f"  {name}& operator=(const {name}& o);\n")
-    out.append(f"  {name}& operator=({name}&& o) noexcept;\n")
+    out.append(f"  {name}& operator=({name}&& o);\n")
     out.append(f"  ~{name}();\n\n")
 
     out.append(f"  const {name}& value() const noexcept {{ return *this; }}\n")
-    out.append(f"  sub8::BitFieldResult set_value(const {name}& v) noexcept {{ *this = v; return sub8::BitFieldResult::Ok; }}\n")
+    out.append(f"  sub8::BitFieldResult set_value(const {name}& v) {{ *this = v; return sub8::BitFieldResult::Ok; }}\n")
     out.append("  bool is_null() const noexcept;\n\n")
 
     # getters/setters prototypes
     for o in opts:
         out.append(f"  const {o['cpp']}* get_{o['name']}() const noexcept;\n")
         out.append(f"  bool is_{o['name']}() const noexcept;\n")
-        out.append(f"  sub8::BitFieldResult set_{o['name']}(const {o['cpp']}& v) noexcept;\n\n")
+        out.append(f"  sub8::BitFieldResult set_{o['name']}(const {o['cpp']}& v);\n\n")
 
     out.append(f"  bool operator==(const {name}& o) const noexcept;\n")
     out.append(f"  bool operator!=(const {name}& o) const noexcept {{ return !(*this == o); }}\n")
@@ -379,14 +384,22 @@ def emit_variant_decl(op: Dict[str, Any]) -> str:
     out.append("template <typename Storage>\n")
     out.append(f"inline sub8::BitFieldResult write_field(sub8::BasicBitWriter<Storage>& bw, const {qname}& v) {{\n")
     out.append("  sub8::BitFieldResult r = sub8::BitFieldResult::Ok;\n")
-    out.append(f"  {qualify(ns, tag_field)} t; t.set_value(static_cast<{qualify(ns, tag_enum)}>(static_cast<uint32_t>(v.type)));\n")
+    out.append("  switch (static_cast<uint32_t>(v.type)) {\n")
+    out.append("    case 0u: break;\n")
+    for o in opts:
+        out.append(f"    case {int(o['id'])}u: break;\n")
+    out.append("    default: return sub8::BitFieldResult::ErrorInvalidBitFieldValue;\n")
+    out.append("  }\n")
+    out.append(f"  {qualify(ns, tag_field)} t;\n")
+    out.append(f"  r = t.set_value(static_cast<{qualify(ns, tag_enum)}>(static_cast<uint32_t>(v.type)));\n")
+    out.append("  if (r != sub8::BitFieldResult::Ok) return r;\n")
     out.append("  r = write_field(bw, t);\n")
     out.append("  if (r != sub8::BitFieldResult::Ok) return r;\n")
     out.append("  switch (static_cast<uint32_t>(v.type)) {\n")
     out.append("    case 0u: return sub8::BitFieldResult::Ok;\n")
     for o in opts:
         out.append(f"    case {int(o['id'])}u: return write_field(bw, v.variant.{o['name']});\n")
-    out.append("    default: return sub8::BitFieldResult::Ok;\n")
+    out.append("    default: return sub8::BitFieldResult::ErrorInvalidBitFieldValue;\n")
     out.append("  }\n")
     out.append("}\n\n")
 
@@ -402,7 +415,7 @@ def emit_variant_decl(op: Dict[str, Any]) -> str:
     out.append("    case 0u: out.construct_null(); return sub8::BitFieldResult::Ok;\n")
     for o in opts:
         out.append(f"    case {int(o['id'])}u: new (&out.variant.{o['name']}) {o['cpp']}{{}}; return read_field(br, out.variant.{o['name']});\n")
-    out.append("    default: out.construct_null(); return sub8::BitFieldResult::Ok;\n")
+    out.append("    default: out.construct_null(); return sub8::BitFieldResult::ErrorInvalidBitFieldValue;\n")
     out.append("  }\n")
     out.append("}\n")
     out.append("} // namespace sub8\n")
@@ -487,7 +500,7 @@ def emit_variant_impl(op: Dict[str, Any]) -> str:
     out.append("  }\n")
     out.append("}\n\n")
 
-    out.append(f"{qname}::{name}({qname}&& o) noexcept {{\n")
+    out.append(f"{qname}::{name}({qname}&& o) {{\n")
     out.append("  type = o.type;\n")
     out.append("  switch (static_cast<uint32_t>(type)) {\n")
     out.append("    case 0u: new (&variant.null_v) sub8::NullValue(std::move(o.variant.null_v)); break;\n")
@@ -511,7 +524,7 @@ def emit_variant_impl(op: Dict[str, Any]) -> str:
     out.append("  return *this;\n")
     out.append("}\n\n")
 
-    out.append(f"{qname}& {qname}::operator=({qname}&& o) noexcept {{\n")
+    out.append(f"{qname}& {qname}::operator=({qname}&& o) {{\n")
     out.append("  if (this == &o) return *this;\n")
     out.append("  destroy_active();\n")
     out.append("  type = o.type;\n")
@@ -536,9 +549,10 @@ def emit_variant_impl(op: Dict[str, Any]) -> str:
 
         out.append(f"bool {qname}::is_{o['name']}() const noexcept {{ return static_cast<uint32_t>(type) == {int(o['id'])}u; }}\n\n")
 
-        out.append(f"sub8::BitFieldResult {qname}::set_{o['name']}(const {o['cpp']}& v) noexcept {{\n")
+        out.append(f"sub8::BitFieldResult {qname}::set_{o['name']}(const {o['cpp']}& v) {{\n")
+        out.append(f"  {o['cpp']} value_copy(v);\n")
         out.append("  destroy_active();\n")
-        out.append(f"  new (&variant.{o['name']}) {o['cpp']}(v);\n")
+        out.append(f"  new (&variant.{o['name']}) {o['cpp']}(std::move(value_copy));\n")
         out.append(f"  type = static_cast<{tag_enum}>({int(o['id'])}u);\n")
         out.append("  return sub8::BitFieldResult::Ok;\n")
         out.append("}\n\n")
@@ -549,7 +563,7 @@ def emit_variant_impl(op: Dict[str, Any]) -> str:
     out.append("    case 0u: return true;\n")
     for o in opts:
         out.append(f"    case {int(o['id'])}u: return variant.{o['name']} == o.variant.{o['name']};\n")
-    out.append("    default: return true;\n")
+    out.append("    default: return false;\n")
     out.append("  }\n")
     out.append("}\n")
 

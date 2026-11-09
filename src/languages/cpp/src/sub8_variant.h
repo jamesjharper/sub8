@@ -55,7 +55,7 @@ enum class VariantValueType : uint8_t {
 using VariantValueTypeField = Enumeration<VariantValueType, VariantValueType::NullValue, VariantValueType::Float64ValueField>;
 
 struct PrimitiveVariant {
-  VariantValueType type;
+  VariantValueType type{VariantValueType::NullValue};
 
   union VariantValue {
     NullValue null_v;
@@ -128,119 +128,119 @@ struct PrimitiveVariant {
   BitSize actual_size() const noexcept {
     switch (type) {
     case VariantValueType::NullValue: {
-      return NullValue::ActualSize;
+      return VariantValueTypeField::ActualSize + NullValue::ActualSize;
     }
 
 #if SUB8_ENABLE_BOOL
     case VariantValueType::Boolean: {
-      return Boolean::ActualSize;
+      return VariantValueTypeField::ActualSize + Boolean::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_UINT4
     case VariantValueType::U4: {
-      return U4::ActualSize;
+      return VariantValueTypeField::ActualSize + U4::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_UINT8
     case VariantValueType::U8: {
-      return U8::ActualSize;
+      return VariantValueTypeField::ActualSize + U8::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_INT8
     case VariantValueType::I8: {
-      return I8::ActualSize;
+      return VariantValueTypeField::ActualSize + I8::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_UINT16
     case VariantValueType::U16: {
-      return U16::ActualSize;
+      return VariantValueTypeField::ActualSize + U16::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_INT16
     case VariantValueType::I16: {
-      return I16::ActualSize;
+      return VariantValueTypeField::ActualSize + I16::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_UINT32
     case VariantValueType::U32: {
-      return U32::ActualSize;
+      return VariantValueTypeField::ActualSize + U32::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_VARIABLE_LENGTH_UINT32
     case VariantValueType::U32P8: {
-      return variant.u32_p8_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.u32_p8_v.actual_size();
     }
     case VariantValueType::U32P16: {
-      return variant.u32_p16_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.u32_p16_v.actual_size();
     }
 #endif
 
 #if SUB8_ENABLE_INT32
     case VariantValueType::I32: {
-      return I32::ActualSize;
+      return VariantValueTypeField::ActualSize + I32::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_VARIABLE_LENGTH_INT32
     case VariantValueType::I32P8: {
-      return variant.i32_p8_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.i32_p8_v.actual_size();
     }
     case VariantValueType::I32P16: {
-      return variant.i32_p16_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.i32_p16_v.actual_size();
     }
 #endif
 
 #if SUB8_ENABLE_UINT64
     case VariantValueType::U64: {
-      return U64::ActualSize;
+      return VariantValueTypeField::ActualSize + U64::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_VARIABLE_LENGTH_UINT64
     case VariantValueType::U64P32: {
-      return variant.u64_p32_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.u64_p32_v.actual_size();
     }
 #endif
 
 #if SUB8_ENABLE_INT64
     case VariantValueType::I64: {
-      return I64::ActualSize;
+      return VariantValueTypeField::ActualSize + I64::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_VARIABLE_LENGTH_INT64
     case VariantValueType::I64P32: {
-      return variant.i64_p32_v.actual_size();
+      return VariantValueTypeField::ActualSize + variant.i64_p32_v.actual_size();
     }
 #endif
 
 #if SUB8_ENABLE_FLOAT16
     case VariantValueType::Float16ValueField: {
-      return Float16ValueField::ActualSize;
+      return VariantValueTypeField::ActualSize + Float16ValueField::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_FLOAT32
     case VariantValueType::Float32ValueField: {
-      return Float32ValueField::ActualSize;
+      return VariantValueTypeField::ActualSize + Float32ValueField::ActualSize;
     }
 #endif
 
 #if SUB8_ENABLE_FLOAT64
     case VariantValueType::Float64ValueField: {
-      return Float64ValueField::ActualSize;
+      return VariantValueTypeField::ActualSize + Float64ValueField::ActualSize;
     }
 #endif
 
     default:
-      return NullValue::ActualSize;
+      return VariantValueTypeField::ActualSize + NullValue::ActualSize;
     }
   }
 
@@ -791,7 +791,7 @@ struct PrimitiveVariant {
     return nullptr;
   }
 
-  BitFieldResult set_float64(float v) {
+  BitFieldResult set_float64(double v) {
     auto r = variant.f64_v.set_value(v);
     if (r == BitFieldResult::Ok) {
       type = VariantValueType::Float64ValueField;
@@ -970,10 +970,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult write_field(Ba
 #endif
 #if SUB8_ENABLE_VARIABLE_LENGTH_UINT32
   case VariantValueType::U32P8: {
-    return write_field(bw, field.variant.u32_v);
+    return write_field(bw, field.variant.u32_p8_v);
   }
   case VariantValueType::U32P16: {
-    return write_field(bw, field.variant.u32_v);
+    return write_field(bw, field.variant.u32_p16_v);
   }
 #endif
 
@@ -984,10 +984,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult write_field(Ba
 #endif
 #if SUB8_ENABLE_VARIABLE_LENGTH_INT32
   case VariantValueType::I32P8: {
-    return write_field(bw, field.variant.i32_v);
+    return write_field(bw, field.variant.i32_p8_v);
   }
   case VariantValueType::I32P16: {
-    return write_field(bw, field.variant.i32_v);
+    return write_field(bw, field.variant.i32_p16_v);
   }
 #endif
 
@@ -996,9 +996,9 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult write_field(Ba
     return write_field(bw, field.variant.u64_v);
   }
 #endif
-#if SUB8_ENABLE_VARIABLE_LENGTH_INT64
+#if SUB8_ENABLE_VARIABLE_LENGTH_UINT64
   case VariantValueType::U64P32: {
-    return write_field(bw, field.variant.u64_v);
+    return write_field(bw, field.variant.u64_p32_v);
   }
 #endif
 
@@ -1006,8 +1006,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult write_field(Ba
   case VariantValueType::I64: {
     return write_field(bw, field.variant.i64_v);
   }
+#endif
+#if SUB8_ENABLE_VARIABLE_LENGTH_INT64
   case VariantValueType::I64P32: {
-    return write_field(bw, field.variant.i64_v);
+    return write_field(bw, field.variant.i64_p32_v);
   }
 #endif
 
@@ -1095,10 +1097,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult read_field(Bas
 #endif
 #if SUB8_ENABLE_VARIABLE_LENGTH_UINT32
   case VariantValueType::U32P8: {
-    return read_field(br, out.variant.u32_v);
+    return read_field(br, out.variant.u32_p8_v);
   }
   case VariantValueType::U32P16: {
-    return read_field(br, out.variant.u32_v);
+    return read_field(br, out.variant.u32_p16_v);
   }
 #endif
 
@@ -1109,10 +1111,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult read_field(Bas
 #endif
 #if SUB8_ENABLE_VARIABLE_LENGTH_INT32
   case VariantValueType::I32P8: {
-    return read_field(br, out.variant.i32_v);
+    return read_field(br, out.variant.i32_p8_v);
   }
   case VariantValueType::I32P16: {
-    return read_field(br, out.variant.i32_v);
+    return read_field(br, out.variant.i32_p16_v);
   }
 #endif
 
@@ -1121,9 +1123,9 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult read_field(Bas
     return read_field(br, out.variant.u64_v);
   }
 #endif
-#if SUB8_ENABLE_VARIABLE_LENGTH_INT64
+#if SUB8_ENABLE_VARIABLE_LENGTH_UINT64
   case VariantValueType::U64P32: {
-    return read_field(br, out.variant.u64_v);
+    return read_field(br, out.variant.u64_p32_v);
   }
 #endif
 
@@ -1131,8 +1133,10 @@ template <typename Storage> SUB8_NO_DISCARD inline BitFieldResult read_field(Bas
   case VariantValueType::I64: {
     return read_field(br, out.variant.i64_v);
   }
+#endif
+#if SUB8_ENABLE_VARIABLE_LENGTH_INT64
   case VariantValueType::I64P32: {
-    return read_field(br, out.variant.i64_v);
+    return read_field(br, out.variant.i64_p32_v);
   }
 #endif
 
@@ -1297,7 +1301,7 @@ inline PrimitiveVariant make_uint64_variant(uint64_t v) {
 
 #endif
 
-#if SUB8_ENABLE_VARIABLE_LENGTH_INT64
+#if SUB8_ENABLE_VARIABLE_LENGTH_UINT64
 
 // Packed uint64 (32-bit Groups)
 inline PrimitiveVariant make_uint64_p32_variant(uint64_t v) {

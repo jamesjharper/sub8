@@ -316,8 +316,6 @@ kinds:
           - "sub8_io.h"
           - "sub8_api.h"
           - "sub8_strings.h"
-        source: 
-          - "sub8_strings.cpp"
         def: |
           {has(bounded_buffer_size)?
             sub8::BoundedString<${schema.bounded_buffer_size},

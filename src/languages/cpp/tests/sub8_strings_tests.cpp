@@ -562,6 +562,45 @@ TEST_CASE("FiveBitStringBitField<char>: invalid UTF-8 bytes roundtrip as U+FFFD"
   require_strings_match(out.view(), std::string_view(expected));
 }
 
+TEST_CASE("FiveBitStringBitField<char>: unsupported dollar sign decodes as replacement character",
+          "[FiveBitStringBitField][5-bit][string][unsupported]") {
+  using T_SUT = UnboundedB5String<128>;
+
+  T_SUT input{};
+  REQUIRE(input.set_value("before$after") == BitFieldResult::Ok);
+
+  UnboundedBitWriter bw;
+  REQUIRE(write_field(bw, input) == BitFieldResult::Ok);
+
+  UnboundedBitReader br(bw.storage(), bw.size());
+  T_SUT output{};
+  REQUIRE(read_field(br, output) == BitFieldResult::Ok);
+
+  const std::string expected = std::string("before") + "\xEF\xBF\xBD" + "after";
+  require_strings_match(output.view(), std::string_view(expected));
+}
+
+TEST_CASE("FiveBitStringBitField<char>: exit extended mode before ordinary character",
+          "[FiveBitStringBitField][5-bit][string][mode_transition]") {
+  using T_SUT = UnboundedB5String<128>;
+
+  // '(' and ')' are extended B5 characters, so they enter 10-bit mode.
+  // '-' is a normal 5-bit character; '>' is extended again. The encoder
+  // must exit 10-bit mode before emitting '-', even with '>' immediately next.
+  const std::string original = "()->";
+  T_SUT input{};
+  REQUIRE(input.set_value(original) == BitFieldResult::Ok);
+
+  UnboundedBitWriter bw;
+  REQUIRE(write_field(bw, input) == BitFieldResult::Ok);
+
+  UnboundedBitReader br(bw.storage(), bw.size());
+  T_SUT output{};
+  REQUIRE(read_field(br, output) == BitFieldResult::Ok);
+  require_strings_match(output.view(), std::string_view(original));
+  REQUIRE(br.cursor_position().bit_size() == bw.size().bit_size());
+}
+
 // -------------------------------------------------------------
 // README roundtrip
 // -------------------------------------------------------------
@@ -609,7 +648,16 @@ TEST_CASE("FiveBitStringBitField<char>: README roundtrip", "[FiveBitStringBitFie
   const auto read_result = read_field(br, output);
   REQUIRE(read_result == BitFieldResult::Ok);
 
-  require_strings_match(output.view(), std::string_view(utf8));
+  // B5 replaces code points not present in its character table with U+FFFD.
+  // This README contains an unsupported dollar sign in a YAML expression.
+  std::string expected = utf8;
+  std::size_t pos = 0;
+  while ((pos = expected.find(static_cast<char>(36), pos)) != std::string::npos) {
+    expected.replace(pos, 1, "\xEF\xBF\xBD");
+    pos += 3;
+  }
+
+  require_strings_match(output.view(), std::string_view(expected));
   REQUIRE(output.actual_size().bit_size() == bw.size().bit_size());
 }
 
