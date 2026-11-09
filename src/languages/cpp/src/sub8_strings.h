@@ -1681,7 +1681,10 @@ public:
         previous_multi_code_state_ = true;
       }
     } else {
-      if (!head.is_extended_char() && (!look_ahead_1.is_null() && !look_ahead_1.is_extended_char())) {
+      // A non-extended character cannot be represented as a 10-bit LUT
+      // address. Exit immediately, even if the following character is
+      // extended, or the decoder may consume this character as a control.
+      if (!head.is_extended_char()) {
         // emit chars to go to exit multi byte mode
         seq_len += emit_exit_multi_byte_mode_control_char(buffer, len);
         previous_multi_code_state_ = false;
