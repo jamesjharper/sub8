@@ -43,8 +43,8 @@ def test_variant_generator_does_not_promise_nothrow_copy():
     assert "Packet(Packet&& o);" in decl
     assert "operator=(Packet&& o);" in decl
     assert "set_small(const sub8::U8& v);" in decl
-    assert "Packet::Packet(Packet&& o) {" in impl
-    assert "Packet::set_small(const sub8::U8& v) {" in impl
+    assert "audit::Packet::Packet(audit::Packet&& o) {" in impl
+    assert "audit::Packet::set_small(const sub8::U8& v) {" in impl
     assert "sub8::U8 value_copy(v);" in impl
 
 
