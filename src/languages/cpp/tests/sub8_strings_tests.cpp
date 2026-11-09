@@ -627,18 +627,11 @@ TEST_CASE("FiveBitStringBitField<char>: README roundtrip", "[FiveBitStringBitFie
   const auto read_result = read_field(br, output);
   REQUIRE(read_result == BitFieldResult::Ok);
 
-  // B5 intentionally replaces code points absent from its character table.
-  // The README contains '
-
-#endif  // SUB8_ENABLE_FIVE_BIT_STRING && SUB8_ENABLE_STRING_FIELDS__CHAR
- in a YAML substitution example. This is not
-  // representable by B5 and must decode to U+FFFD (UTF-8 EF BF BD).
+  // B5 replaces code points not present in its character table with U+FFFD.
+  // This README contains an unsupported dollar sign in a YAML expression.
   std::string expected = utf8;
   std::size_t pos = 0;
-  while ((pos = expected.find('
-
-#endif  // SUB8_ENABLE_FIVE_BIT_STRING && SUB8_ENABLE_STRING_FIELDS__CHAR
-, pos)) != std::string::npos) {
+  while ((pos = expected.find(static_cast<char>(36), pos)) != std::string::npos) {
     expected.replace(pos, 1, "\xEF\xBF\xBD");
     pos += 3;
   }
