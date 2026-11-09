@@ -134,8 +134,16 @@ def _resolve_import_path(rel_or_abs: str, base_dir: str, search_paths: List[str]
     )
 
 
-def load_with_imports(root_path: str, *, import_search_paths: List[str] | None = None) -> Dict[str, Any]:
-    root_abs = os.path.abspath(root_path)
+def load_with_imports(
+    root_path: str, *,
+    import_search_paths: List[str] | None = None,
+    _active_imports: Tuple[str, ...] = (),
+) -> Dict[str, Any]:
+    root_abs = os.path.realpath(root_path)
+    if root_abs in _active_imports:
+        chain = " -> ".join([*_active_imports, root_abs])
+        raise ValueError(f"Cyclic YAML imports: {chain}")
+    active_imports = (*_active_imports, root_abs)
     root_dir = os.path.dirname(root_abs)
     root = load_yaml_file(root_abs)
 
@@ -149,7 +157,7 @@ def load_with_imports(root_path: str, *, import_search_paths: List[str] | None =
     for imp in imports:
         rel = _normalize_import_entry(imp)
         imp_abs = _resolve_import_path(rel, base_dir=root_dir, search_paths=search_paths)
-        imp_data = load_with_imports(imp_abs, import_search_paths=search_paths)
+        imp_data = load_with_imports(imp_abs, import_search_paths=search_paths, _active_imports=active_imports)
         merged = deep_merge(merged, imp_data)
 
     merged = deep_merge(merged, root)
