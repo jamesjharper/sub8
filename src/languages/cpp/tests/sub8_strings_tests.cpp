@@ -609,7 +609,23 @@ TEST_CASE("FiveBitStringBitField<char>: README roundtrip", "[FiveBitStringBitFie
   const auto read_result = read_field(br, output);
   REQUIRE(read_result == BitFieldResult::Ok);
 
-  require_strings_match(output.view(), std::string_view(utf8));
+  // B5 intentionally replaces code points absent from its character table.
+  // The README contains '
+
+#endif  // SUB8_ENABLE_FIVE_BIT_STRING && SUB8_ENABLE_STRING_FIELDS__CHAR
+ in a YAML substitution example. This is not
+  // representable by B5 and must decode to U+FFFD (UTF-8 EF BF BD).
+  std::string expected = utf8;
+  std::size_t pos = 0;
+  while ((pos = expected.find('
+
+#endif  // SUB8_ENABLE_FIVE_BIT_STRING && SUB8_ENABLE_STRING_FIELDS__CHAR
+, pos)) != std::string::npos) {
+    expected.replace(pos, 1, "\xEF\xBF\xBD");
+    pos += 3;
+  }
+
+  require_strings_match(output.view(), std::string_view(expected));
   REQUIRE(output.actual_size().bit_size() == bw.size().bit_size());
 }
 
