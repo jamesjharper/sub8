@@ -99,6 +99,7 @@ gen: $(GEN_STAMP)
 # This stamp makes codegen incremental: only re-run when inputs change.
 $(GEN_STAMP): \
 	$(CPP_EXAMPLE_YAML) \
+	$(SRC_PY_DIR)/std_yaml/core.yaml \
 	$(SRC_PY_DIR)/pipeline.py \
 	$(SRC_PY_DIR)/pipeline_core.py \
 	$(SRC_PY_DIR)/merge.py \
