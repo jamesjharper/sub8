@@ -562,6 +562,24 @@ TEST_CASE("FiveBitStringBitField<char>: invalid UTF-8 bytes roundtrip as U+FFFD"
   require_strings_match(out.view(), std::string_view(expected));
 }
 
+TEST_CASE("FiveBitStringBitField<char>: unsupported dollar sign decodes as replacement character",
+          "[FiveBitStringBitField][5-bit][string][unsupported]") {
+  using T_SUT = UnboundedB5String<128>;
+
+  T_SUT input{};
+  REQUIRE(input.set_value("before$after") == BitFieldResult::Ok);
+
+  UnboundedBitWriter bw;
+  REQUIRE(write_field(bw, input) == BitFieldResult::Ok);
+
+  UnboundedBitReader br(bw.storage(), bw.size());
+  T_SUT output{};
+  REQUIRE(read_field(br, output) == BitFieldResult::Ok);
+
+  const std::string expected = std::string("before") + "\xEF\xBF\xBD" + "after";
+  require_strings_match(output.view(), std::string_view(expected));
+}
+
 // -------------------------------------------------------------
 // README roundtrip
 // -------------------------------------------------------------
